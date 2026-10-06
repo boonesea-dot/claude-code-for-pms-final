@@ -68,3 +68,10 @@ Rook Industries (founded 2014, HQ Site Aleph, 241 staff, offices in Berlin, Sing
 - The running priorities list and open questions are in `00-rook/dispatch-priorities.md`. Read it at the start of a session and update its status boxes and log as work happens.
 - A rook-database connector is available for numbers. Rook-wiki search matches titles only; use read_page to see page text and comments.
 - Treat the handover doc as one person's account, and wiki statuses as possibly stale (roadmap last reviewed 30 Jun).
+
+### Learned in the Module 1 session (6 Oct 2026)
+- The wiki root has three sections: Company (read), and Research and Product briefs (not yet read). Research holds Customer interviews and the 4.2 change page, and the first read of Research is still the best next step for the 4.2 evidence.
+- `00-rook/code/dispatch-routing/` holds the routing code, a README and a CHANGELOG. They're unread, but they may be the missing written description of who gets pinged and may show what 4.2 changed. `00-rook/feedback/` is empty.
+- No acceptance numbers appear in any source read so far, so every claim about the 4.2 drop (including Priya's "seasonal") is untested. rook-database is the likely source and hasn't been queried.
+- Open: Availability Confidence missing from 4.2, no 4.3 release listed despite a "monthly" cadence, and no owner for the Supply roadmap item. The full list is in `00-rook/dispatch-priorities.md`.
+- I asked for company context to be read narrowly (company folder and Company wiki section). Say plainly when a wider read is needed, and I'll ask before narrowing again.
