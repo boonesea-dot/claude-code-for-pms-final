@@ -2,6 +2,9 @@
 
 For Helen · 9 Oct 2026 · Draft. **This is what we would do if we're right.** Our hypothesis (not yet confirmed against live scores): 4.2's 60-second wait caused a run of misses, each miss cut the responder's ranking score by 0.12, and because the score only changes when someone is pinged, they could never climb back. Farlight is a cover name; nothing here tries to identify anyone.
 
+> ## The problem
+> **Since 4.2, four responders have almost stopped getting pings, and nothing they do can change it.** Their area's callouts still get answered, because other responders take them, so the aggregate numbers look fine. The responders are left wondering whether they've been dropped, and their handlers have no way to see or explain it.
+
 > ## The fix
 > **A responder's recent-acceptance score eases back toward neutral (0.5) on its own over time, pinged or not, and a responder who goes N days without a ping shows as quiet on the console.** A bad stretch stops being permanent, and a quiet responder stops being invisible. This settles Wen's 2019 question in favour of "a bad month shouldn't still be carrying it in the spring."
 
