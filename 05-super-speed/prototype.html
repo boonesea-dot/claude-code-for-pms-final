@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rook Dispatch console: quiet responders (prototype)</title>
+<style>
+  :root{
+    --bg:#f4f5f3; --panel:#fff; --ink:#1f2226; --mute:#62666c; --line:#dcdfdb;
+    --blue:#2878d6; --blue-soft:#e6f0fb; --amber:#b45f06; --amber-soft:#fdf0dc; --orange:#d96b1c;
+    --nav:#22282f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.45 Arial,Helvetica,sans-serif;color:var(--ink);background:var(--bg)}
+  .proto{background:#fff7d6;border-bottom:1px solid #e6d58a;padding:8px 20px;font-size:12.5px}
+  header{background:var(--nav);color:#fff;display:flex;align-items:center;gap:28px;padding:0 20px;height:48px}
+  header b{font-size:15px;letter-spacing:.3px}
+  header nav a{color:#b9c0c8;text-decoration:none;margin-right:18px;font-size:13px;padding:15px 0;display:inline-block}
+  header nav a.on{color:#fff;border-bottom:2px solid var(--blue)}
+  main{display:grid;grid-template-columns:1fr 340px;gap:18px;padding:18px 20px;max-width:1180px;margin:0 auto}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px}
+  .controls{padding:14px 16px;grid-column:1/-1;display:flex;flex-wrap:wrap;gap:22px;align-items:center}
+  .controls label{font-size:12px;color:var(--mute);display:block;margin-bottom:3px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:7px 14px;font:inherit;cursor:pointer;color:var(--ink)}
+  .seg button[aria-pressed="true"]{background:var(--blue);color:#fff}
+  .seg button:focus-visible,input:focus-visible,tr:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  input[type=range]{width:170px;vertical-align:middle}
+  .val{display:inline-block;min-width:60px;font-weight:bold}
+  h2{margin:0;font-size:15px}
+  .tablehead{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .tablehead span{font-size:12px;color:var(--mute)}
+  table{width:100%;border-collapse:collapse}
+  th{font-size:11.5px;text-align:left;color:var(--mute);font-weight:normal;padding:8px 12px;border-bottom:1px solid var(--line)}
+  td{padding:10px 12px;border-bottom:1px solid #eef0ed;vertical-align:middle}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:#f7f9f6}
+  tbody tr[aria-selected="true"]{background:var(--blue-soft)}
+  .name{font-weight:bold}
+  .area{color:var(--mute);font-size:12px}
+  .bar{width:90px;height:8px;background:#e8eae6;border-radius:4px;display:inline-block;vertical-align:middle;margin-right:8px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--blue);border-radius:4px;transition:width .25s}
+  .quiet{display:inline-block;background:var(--amber-soft);color:var(--amber);border:1px solid #f0cf9a;border-radius:12px;padding:2px 9px;font-size:12px;font-weight:bold;white-space:nowrap}
+  .ok{color:var(--mute);font-size:12px}
+  aside{padding:16px}
+  aside h2{font-size:17px}
+  .sub{color:var(--mute);font-size:12.5px;margin:2px 0 14px}
+  .answer{background:var(--blue-soft);border-left:3px solid var(--blue);padding:10px 12px;border-radius:4px;margin-bottom:14px}
+  .answer b{display:block;margin-bottom:2px}
+  dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px}
+  dt{color:var(--mute);font-size:12.5px}
+  dd{margin:0;font-weight:bold;text-align:right}
+  canvas{width:100%;height:150px;display:block;margin:14px 0 4px}
+  .legend{font-size:11.5px;color:var(--mute)}
+  .note{font-size:12px;color:var(--mute);padding:0 16px 14px;line-height:1.5}
+  .phone{width:300px;border:10px solid #15181c;border-radius:36px;background:#15181c;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+  .notch{width:90px;height:16px;background:#15181c;margin:0 auto;border-radius:0 0 12px 12px}
+  .pscreen{background:#f4f5f3;border-radius:26px;min-height:560px;padding:14px;margin-top:-10px;padding-top:24px}
+  .phead{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+  .avail{font-size:12px;color:#0e6b3a}.avail i{display:inline-block;width:8px;height:8px;background:#1d9a57;border-radius:50%;margin-right:4px}
+  .pname{font-size:20px;font-weight:bold;margin:10px 0 12px}
+  .pcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px}
+  .pcard h3{margin:0 0 4px;font-size:13px}
+  .pcard p{margin:0;font-size:13px}
+  .rot{border-left:4px solid var(--blue)}
+  .tag{display:inline-block;font-size:10.5px;background:#fff7d6;border:1px solid #e6d58a;border-radius:8px;padding:1px 6px;margin-left:6px;font-weight:normal}
+  .big{width:100%;padding:12px;font:inherit;font-weight:bold;border:0;border-radius:10px;background:var(--blue);color:#fff;cursor:pointer}
+  .big.alt{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .ping{background:#fff;border:2px solid var(--orange);border-radius:12px;padding:12px}
+  .ping h3{margin:0 0 2px;font-size:15px}
+  .ping .meta{font-size:12.5px;color:var(--mute);margin-bottom:8px}
+  .timer{height:8px;background:#eee;border-radius:4px;overflow:hidden;margin:8px 0 4px}
+  .timer i{display:block;height:100%;background:var(--orange);width:100%}
+  .row2{display:flex;gap:8px;margin-top:10px}
+  .row2 .big{flex:1}
+  .plog{font-size:12.5px;color:var(--mute);margin-top:10px}
+  .plog div{padding:6px 0;border-top:1px solid #e6e8e4}
+  .empty{color:var(--mute);padding:30px 6px;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="proto"><b>Prototype, not the product.</b> Built from the brief (<code>brief.md</code>): it shows <i>what we would do if our hypothesis is right</i>. Scores are modelled, not live. Only Farlight's last ping (28 Aug) comes from the database; other responders' dates and numbers are sample values. The 7-day half-life and "N days" are placeholders.</div>
+
+<header>
+  <b>Rook Dispatch</b>
+  <nav aria-label="Console">
+    <a href="#" onclick="return false">Incidents</a>
+    <a href="#" onclick="return false">Coverage</a>
+    <a href="#" class="on" aria-current="page" onclick="return false">Responders</a>
+    <a href="#" onclick="return false">Routing log</a>
+  </nav>
+  <span style="margin-left:auto;font-size:12.5px;color:#b9c0c8">Handler: Linda Pruitt</span>
+</header>
+
+<main>
+  <section class="card controls" aria-label="Prototype controls">
+    <div style="order:99;margin-left:auto">
+      <label>&nbsp;</label>
+      <button id="reset" class="big alt" style="width:auto;padding:7px 14px;font-weight:normal">Reset demo</button>
+    </div>
+    <div>
+      <label>View</label>
+      <div class="seg" role="group" aria-label="Which screen">
+        <button id="vCons" aria-pressed="true">Handler console (Linda)</button>
+        <button id="vPhone" aria-pressed="false">Responder phone (Farlight)</button>
+      </div>
+    </div>
+    <div>
+      <label>The fix</label>
+      <div class="seg" role="group" aria-label="Fix on or off">
+        <button id="fixOff" aria-pressed="true">Off (today)</button>
+        <button id="fixOn" aria-pressed="false">On (ships today)</button>
+      </div>
+    </div>
+    <div>
+      <label for="days">Days since the fix shipped</label>
+      <input type="range" id="days" min="0" max="28" value="0"> <span class="val" id="daysVal">0 days</span>
+    </div>
+    <div>
+      <label for="nDays">Flag as quiet after N days with no ping</label>
+      <input type="range" id="nDays" min="3" max="14" value="7"> <span class="val" id="nVal">7 days</span>
+    </div>
+  </section>
+
+  <section class="card" id="consoleTable" aria-label="Responders">
+    <div class="tablehead"><h2>Responders</h2><span id="asof">As of 6 Sep 2026 + 0 days. Click a row for detail.</span></div>
+    <table>
+      <thead><tr>
+        <th>Responder</th><th>Recent-acceptance score</th><th>Last ping</th><th>Pings last week</th><th>Status</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p class="note">Responders who are still being pinged are shown holding their score and ping rate, because each yes adds back what the fade takes off. The four starved responders get no new pings as the days pass, except the ones you simulate on Farlight's phone.</p>
+  </section>
+
+  <aside class="card" id="detail" aria-live="polite"></aside>
+
+  <section class="card" id="adminCard" style="grid-column:1/-1;padding:14px 16px;border-left:4px solid #7a3fb0" aria-label="Admin tools">
+    <h2>Admin tools <span class="tag">proposed: immediate relief</span></h2>
+    <p class="sub" style="margin-bottom:10px">A one-time reset for a starved responder, as a bridge while the fade is built. Applies on the day chosen by the days slider.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:center">
+      <button id="adminReset" class="big" style="width:auto;padding:9px 16px;background:#7a3fb0"></button>
+      <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--ink);margin:0">
+        <input type="checkbox" id="missChk" checked> Assume she keeps missing after a reset (one missed ping every 3 days, placeholder)</label>
+    </div>
+    <p id="adminMsg" class="note" style="padding:10px 0 0"></p>
+  </section>
+
+  <section id="phoneView" hidden style="grid-column:1/-1;display:none;justify-content:center;gap:28px;flex-wrap:wrap;align-items:flex-start">
+    <div class="phone" aria-label="Farlight's phone app">
+      <div class="notch"></div>
+      <div class="pscreen">
+        <div class="phead"><b>Rook</b><span class="avail"><i></i> Available</span></div>
+        <div class="pname">Farlight</div>
+        <div class="pcard rot" id="rotCard"></div>
+        <div id="pingArea">
+          <button class="big" id="simPing">Simulate a ping arriving</button>
+        </div>
+        <div class="plog" id="pLog"></div>
+      </div>
+    </div>
+    <div class="card" style="max-width:360px;padding:16px">
+      <h2>What Farlight sees</h2>
+      <p class="sub">Phone app, responder side. Uses the same fix toggle and day slider above.</p>
+      <p><b>The ping</b> is unchanged: 60 seconds to take or turn down. The brief doesn't change the wait.</p>
+      <p><b>The "Your rotation" card</b> is new and <i>proposed, not in the brief</i>. It answers her worry ("starting to wonder if im still even in the system") directly. Whether to show it, and what it says, is a design call for Sofia. It deliberately shows no score.</p>
+      <p><b>Try this:</b> switch the fix on, set the days slider to 14, then simulate a ping and take it. The handler console picks up the +0.08 and the new last-ping date. Let one expire and she loses 0.12.</p>
+      <p class="ok">In real life, with the fix off, she would rarely get a ping at all. The button just lets you see both outcomes.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+/* Sample data. Only Farlight's last ping (28 Aug) is from the pings table. */
+const BASE = new Date(2026, 8, 6); // 6 Sep 2026
+const R = [
+  {n:"Farlight",      a:"Uptown",     s0:0.00, last:new Date(2026,7,28), wk:0,  real:true},
+  {n:"The Undertow",  a:"Harborside", s0:0.00, last:new Date(2026,8,3),  wk:1},
+  {n:"Vesper",        a:"Old Town",   s0:0.00, last:new Date(2026,8,4),  wk:2},
+  {n:"Meteor Mite",   a:"Eastgate",   s0:0.00, last:new Date(2026,8,2),  wk:1},
+  {n:"The Gale",      a:"Eastgate",   s0:0.95, last:new Date(2026,8,6),  wk:21},
+  {n:"Sgt. Falkirk",  a:"Uptown",     s0:0.90, last:new Date(2026,8,5),  wk:7},
+  {n:"Cindermark",    a:"Uptown",     s0:0.85, last:new Date(2026,8,6),  wk:6},
+];
+const HALF = 7, KMIN = 0.25/(0.60/45); // 0.25 acceptance weight / 0.0133 per travel minute
+let fix = false, d = 0, N = 7, sel = 0;
+
+const $ = id => document.getElementById(id);
+const fmt = dt => dt.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+const starved = r => r.s0 < 0.1;
+/* Each answered ping is an event {day, delta, kind}. A score is replayed from its starting value:
+   fade toward 0.5 between events (fix on, starved responders only), then apply the event. */
+const DAY = 864e5, clamp = v => Math.max(0, Math.min(1, v));
+const evs = r => (r.ev || []).slice().sort((a, b) => a.day - b.day);
+const SYNTH_EVERY = 3;            // placeholder: after a reset she is pinged and misses one every 3 days
+let missOn = true;
+const timeline = r => {
+  const real = evs(r), out = real.slice(), resets = real.filter(e => e.kind === "reset");
+  if (missOn) resets.forEach((rs, i) => {
+    const next = resets[i + 1] ? resets[i + 1].day : Infinity;
+    const takes = real.filter(e => e.kind === "taken" && e.day >= rs.day).map(e => e.day);
+    const stop = Math.min(next, takes.length ? Math.min(...takes) : Infinity);
+    for (let m = rs.day + SYNTH_EVERY; m <= 60 && m < stop; m += SYNTH_EVERY)
+      out.push({day: m, delta: -0.12, kind: "missed", synthetic: true});
+  });
+  return out.sort((a, b) => a.day - b.day);
+};
+const pingEvs = r => timeline(r).filter(e => e.kind !== "reset");
+const fadeTo = (s, dt, f, r) => (f && starved(r)) ? 0.5 - (0.5 - s) * Math.pow(2, -dt / HALF) : s;
+const scoreAt = (r, t = d, f = fix) => {
+  let s = r.s0, prev = 0;
+  for (const e of timeline(r)) { if (e.day > t) break; s = fadeTo(s, e.day - prev, f, r); s = e.kind === "reset" ? e.setTo : clamp(s + e.delta); prev = e.day; }
+  return fadeTo(s, t - prev, f, r);
+};
+const score = (r, t = d) => scoreAt(r, t, fix);
+const lastDate = r => { const e = pingEvs(r).filter(e => e.day <= d).pop(); if (e) return new Date(BASE.getTime() + e.day * DAY);
+  return starved(r) ? r.last : new Date(r.last.getTime() + d * DAY); }; // peers keep being pinged
+const since = r => Math.round((BASE.getTime() + d * DAY - lastDate(r)) / DAY);
+const pings = r => {
+  const orig = Math.round((BASE.getTime() + d * DAY - r.last) / DAY);
+  return ((!starved(r) || orig <= 7) ? r.wk : 0) + pingEvs(r).filter(e => e.day <= d && e.day > d - 7).length;
+};
+const quietFlag = r => since(r) >= N;
+
+function render(){
+  $("daysVal").textContent = d + (d === 1 ? " day" : " days");
+  $("nVal").textContent = N + " days";
+  $("asof").textContent = "As of 6 Sep 2026 + " + d + (d === 1 ? " day" : " days") + ". Click a row for detail.";
+  $("rows").innerHTML = R.map((r,i) => {
+    const sc = score(r), ds = since(r);
+    const status = quietFlag(r)
+      ? `<span class="quiet">&#9679; Quiet &middot; ${ds} days</span>`
+      : `<span class="ok">Active</span>`;
+    return `<tr tabindex="0" data-i="${i}" aria-selected="${i===sel}">
+      <td><div class="name">${r.n}</div><div class="area">${r.a}</div></td>
+      <td><span class="bar"><i style="width:${sc*100}%"></i></span>${sc.toFixed(2)}</td>
+      <td>${fmt(lastDate(r))}</td>
+      <td>${pings(r)}</td><td>${status}</td></tr>`;
+  }).join("");
+  renderDetail();
+}
+
+function renderDetail(){
+  const r = R[sel], sc = score(r), ds = since(r), gapMin = Math.max(0, (0.9 - sc) * KMIN);
+  let answer;
+  if (quietFlag(r)) {
+    answer = fix
+      ? `<b>Yes, ${r.n} is on the list.</b>Her score is rising on its own (${sc.toFixed(2)} now). Last offered a callout ${fmt(lastDate(r))}, ${ds} days ago.`
+      : `<b>${r.n} is on the list, but she is stuck.</b>Last offered a callout ${fmt(lastDate(r))}, ${ds} days ago. Her score is ${sc.toFixed(2)} and nothing lifts it without a ping.`;
+  } else {
+    answer = `<b>${r.n} is active.</b>Last offered a callout ${fmt(lastDate(r))}. About ${pings(r)} ping${pings(r)===1?"":"s"} last week.`;
+  }
+  $("detail").innerHTML = `
+    <h2>${r.n}</h2>
+    <div class="sub">${r.a} &middot; cover name${r.real ? " &middot; last ping from the database" : " &middot; sample data"}</div>
+    <div class="answer">${answer}</div>
+    <dl>
+      <dt>Recent-acceptance score</dt><dd>${sc.toFixed(2)}</dd>
+      <dt>Last offered a callout</dt><dd>${fmt(lastDate(r))} (${ds} day${ds===1?"":"s"})</dd>
+      <dt>Pings last week</dt><dd>${pings(r)}</dd>
+      <dt>Behind a 0.9 neighbour by</dt><dd>${gapMin < 0.5 ? "about nothing" : "&asymp; " + gapMin.toFixed(1) + " min of travel"}</dd>
+    </dl>
+    <canvas id="chart" width="620" height="300" aria-label="Modelled score over the next 28 days"></canvas>
+    <div class="legend">Orange: today, no fix. Blue: with the fix. Filled dots: pings answered. Hollow dots: simulated misses. Diamond: admin reset. Large dot: the day you've chosen.</div>`;
+  drawChart(r);
+}
+
+function drawChart(r){
+  const c = $("chart"), g = c.getContext("2d"), W = c.width, H = c.height, p = {l:34,r:10,t:10,b:24};
+  g.clearRect(0,0,W,H); g.font = "20px Arial"; g.textBaseline = "middle";
+  const X = t => p.l + (W-p.l-p.r) * t/28, Y = v => H-p.b - (H-p.t-p.b) * v;
+  g.strokeStyle = "#e8eae6"; g.fillStyle = "#62666c"; g.lineWidth = 1;
+  [0,0.5,0.9].forEach(v => { g.beginPath(); g.moveTo(p.l,Y(v)); g.lineTo(W-p.r,Y(v)); g.stroke(); g.fillText(v, 2, Y(v)); });
+  g.textAlign = "center"; [0,14,28].forEach(t => g.fillText(t, X(t), H-8)); g.textAlign = "left";
+  const line = (fixOn, col) => {
+    g.strokeStyle = col; g.lineWidth = 3; g.beginPath();
+    for (let t = 0; t <= 28; t += .25){
+      const v = scoreAt(r, t, fixOn);
+      t === 0 ? g.moveTo(X(t),Y(v)) : g.lineTo(X(t),Y(v));
+    } g.stroke();
+  };
+  line(false, "#d96b1c");
+  if (starved(r)) line(true, "#2878d6");
+  timeline(r).forEach(e => { if (e.day > 28) return;
+    const x = X(e.day), y = Y(scoreAt(r, e.day, fix));
+    if (e.kind === "reset") { g.fillStyle = "#7a3fb0"; g.beginPath(); g.moveTo(x, y-9); g.lineTo(x+8, y); g.lineTo(x, y+9); g.lineTo(x-8, y); g.closePath(); g.fill(); }
+    else if (e.synthetic) { g.strokeStyle = "#1f2226"; g.lineWidth = 2; g.fillStyle = "#fff"; g.beginPath(); g.arc(x, y, 4, 0, 7); g.fill(); g.stroke(); }
+    else { g.fillStyle = "#1f2226"; g.beginPath(); g.arc(x, y, 4, 0, 7); g.fill(); } });
+  const v = score(r);
+  g.fillStyle = fix ? "#2878d6" : "#d96b1c"; g.beginPath(); g.arc(X(d), Y(v), 7, 0, 7); g.fill();
+  g.strokeStyle = "#fff"; g.lineWidth = 2; g.stroke();
+}
+
+$("fixOff").onclick = () => { fix = false; $("fixOff").setAttribute("aria-pressed",true); $("fixOn").setAttribute("aria-pressed",false); render(); };
+$("fixOn").onclick  = () => { fix = true;  $("fixOn").setAttribute("aria-pressed",true);  $("fixOff").setAttribute("aria-pressed",false); render(); };
+$("days").oninput  = e => { d = +e.target.value; render(); };
+$("nDays").oninput = e => { N = +e.target.value; render(); };
+$("rows").addEventListener("click", e => { const tr = e.target.closest("tr"); if (tr){ sel = +tr.dataset.i; render(); } });
+$("rows").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.closest("tr")){ e.preventDefault(); sel = +e.target.closest("tr").dataset.i; render(); } });
+
+/* ---------- Phone view ---------- */
+const F = R[0];
+let timerId = null, left = 60;
+const log = [];
+function rotCard(){
+  const ds = since(F);
+  $("rotCard").innerHTML = `<h3>Your rotation <span class="tag">proposed, not in brief</span></h3>
+    <p><b>You're in the rotation.</b> You were last offered a callout on ${fmt(lastDate(F))} (${ds} day${ds===1?"":"s"} ago).</p>
+    <p style="margin-top:6px;color:var(--mute)">${fix
+      ? "Your ranking is recovering. Taking pings moves you up faster."
+      : "Nothing you do from here changes your place until a ping reaches you."}</p>`;
+}
+function phoneLog(){ $("pLog").innerHTML = log.slice(-4).reverse().map(t => `<div>${t}</div>`).join(""); }
+function idlePing(){
+  $("pingArea").innerHTML = `<button class="big" id="simPing">Simulate a ping arriving</button>`;
+  $("simPing").onclick = startPing;
+}
+function endPing(kind){
+  clearInterval(timerId); timerId = null;
+  const t = new Date(BASE.getTime() + d*864e5), when = fmt(t);
+  F.ev = F.ev || [];
+  if (kind === "taken") { F.ev.push({day:d, delta:0.08, kind}); log.push(`${when}: you took the callout. Score +0.08.`); }
+  else if (kind === "down") { F.ev.push({day:d, delta:-0.12, kind}); log.push(`${when}: you turned it down. Score -0.12.`); }
+  else { F.ev.push({day:d, delta:-0.12, kind}); log.push(`${when}: ping missed. Score -0.12.`); }
+  idlePing(); phoneLog(); render();
+}
+function startPing(){
+  left = 60;
+  $("pingArea").innerHTML = `<div class="ping" role="alert"><h3>Callout: structural entry</h3>
+    <div class="meta">Uptown &middot; capability match: structural-entry</div>
+    <div class="timer"><i id="tbar"></i></div><div class="meta" id="tsec">60 seconds to answer</div>
+    <div class="row2"><button class="big" id="take">Take it</button><button class="big alt" id="down">Turn down</button></div>
+    <button class="big alt" id="expire" style="margin-top:8px;font-weight:normal;font-size:12px">(prototype) skip ahead: let it expire</button></div>`;
+  $("take").onclick = () => endPing("taken");
+  $("down").onclick = () => endPing("down");
+  $("expire").onclick = () => endPing("missed");
+  timerId = setInterval(() => {
+    left--; $("tbar").style.width = (left/60*100) + "%"; $("tsec").textContent = left + " seconds to answer";
+    if (left <= 0) endPing("missed");
+  }, 1000);
+}
+$("simPing").onclick = startPing;
+
+function adminRender(){
+  const r = R[sel], ok = starved(r), btn = $("adminReset");
+  btn.textContent = `Reset ${r.n} to neutral (0.50) on day ${d}`;
+  btn.disabled = !ok; btn.style.opacity = ok ? 1 : .45; btn.style.cursor = ok ? "pointer" : "not-allowed";
+  const resets = evs(r).filter(e => e.kind === "reset");
+  $("adminMsg").innerHTML = !ok ? `${r.n} isn't starved, so there's nothing to reset. Select Farlight or another of the four.`
+    : resets.length
+      ? `Reset on ${resets.map(e => "day " + e.day + " (" + fmt(new Date(BASE.getTime() + e.day*DAY)) + ")").join(", ")}. `
+        + (missOn ? "If she stays quiet she keeps missing, and her score slides back toward zero (the brief's warning: a reset alone won't hold). Taking a ping on her phone stops the slide." : "Misses after the reset are switched off, so her score stays where the reset put it.")
+      : "No reset applied yet. Choose a day with the slider, then reset to see the score jump to 0.50.";
+}
+function setView(phone){
+  $("vCons").setAttribute("aria-pressed", !phone); $("vPhone").setAttribute("aria-pressed", phone);
+  $("consoleTable").style.display = phone ? "none" : ""; $("detail").style.display = phone ? "none" : ""; $("adminCard").style.display = phone ? "none" : "";
+  const pv = $("phoneView"); pv.hidden = !phone; pv.style.display = phone ? "flex" : "none";
+  render();
+}
+$("vCons").onclick = () => setView(false);
+$("vPhone").onclick = () => setView(true);
+
+function resetDemo(){
+  clearInterval(timerId); timerId = null;
+  R.forEach(r => { r.ev = []; });
+  log.length = 0;
+  fix = false; d = 0; N = 7; sel = 0;
+  missOn = true; $("missChk").checked = true;
+  $("days").value = 0; $("nDays").value = 7;
+  $("fixOff").setAttribute("aria-pressed", true); $("fixOn").setAttribute("aria-pressed", false);
+  idlePing(); phoneLog(); render();
+}
+$("reset").onclick = resetDemo;
+
+const _render = render;
+render = function(){ _render(); rotCard(); adminRender(); };
+$("adminReset").onclick = () => {
+  const r = R[sel]; if (!starved(r)) return;
+  r.ev = (r.ev || []).filter(e => !(e.kind === "reset" && e.day === d));
+  r.ev.push({day: d, kind: "reset", setTo: 0.5});
+  render();
+};
+$("missChk").onchange = e => { missOn = e.target.checked; render(); };
+render();
+</script>
+</body>
+</html>
